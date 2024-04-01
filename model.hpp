@@ -5,7 +5,12 @@
 #include <map>
 #include <random>
 #include <string>
-#include <cmath>
+
+using std::vector;
+using std::string;
+using std::map;
+using std::ostream;
+using std::normal_distribution;
 
 namespace MC {
     
@@ -16,19 +21,20 @@ namespace MC {
             // random number generator (static member variable)
             static std::mt19937 m_rng;
             // name of the model
-            std::string m_name;
+            string m_name;
             // parameters of the model {name, value}
-            std::map<std::string, double> m_params;
+            map<string, double> m_params;
 
         public:
             // constructor
-            Model(std::string name, std::map<std::string, double> params) :
+            Model(string name, map<string, double> params) :
                 m_name(name), m_params(params) {}
             // print the model
-            void print(std::ostream& os) const;
-            // pure virtual function to simulate the model
-            virtual double simulate(double S, double dt) const = 0;
-
+            void print(ostream& os) const;
+            // pure virtual function to simulate the model from a single value
+            virtual vector<double> simulate(double S, double dt, int N_sim) const = 0;
+            // pure virtual function to simulate from multiple values
+            virtual vector<double> simulate(const vector<double>& S, double dt) const = 0;
     };
 
     // Black-Scholes model
@@ -36,21 +42,22 @@ namespace MC {
         
         public:
             // constructor
-            BlackScholes(double r, double sigma) :
-                Model("Black-Scholes", {{"r", r}, {"sigma", sigma}}) {
+            BlackScholes(double r, double sigma, double d=0.0) :
+                Model("Black-Scholes", {{"r", r}, {"sigma", sigma}, {"d", d}}) { 
                 // check if the parameters are valid
                 if (sigma < 0.0)
                     throw std::invalid_argument("sigma must be non-negative");
             }
 
             // simulate the model with Black Scholes dynamics
-            double simulate(double S, double dt) const override;
-                    
+            vector<double> simulate(double S, double dt, int N_sim) const override;
+            // simulate the model with Black Scholes dynamics (vectorized)
+            vector<double> simulate(const vector<double>& S, double dt) const override;
 
         private:
             // generate a random number from a normal distribution
             double randn() const {
-                std::normal_distribution<double> dist(0.0, 1.0);
+                normal_distribution<double> dist(0.0, 1.0);
                 return dist(m_rng);
             }
 
