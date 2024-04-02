@@ -44,11 +44,11 @@ vector<double> BlackScholes::simulate(const vector<double>& S_0, double dt) cons
     double sigma = m_params.at("sigma");
     double d = m_params.at("d");
 
-    // generate the normal random variable (rescaled)
-    double Z = randn() * sqrt(dt);
     // simulate the model
     vector<double> S_t(S_0.size());
     for (size_t i = 0; i < S_0.size(); i++) {
+        // generate the normal random variable (rescaled)
+        double Z = randn() * sqrt(dt);
         S_t[i] = S_0[i] * exp((r - d - 0.5 * sigma * sigma) * dt + sigma * Z);
     }
     return S_t;
