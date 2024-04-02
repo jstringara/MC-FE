@@ -6,6 +6,7 @@
 #include "matrix.hpp"
 
 using std::vector;
+using std::array;
 
 matrix::matrix (size_type rows, size_type columns, const_reference value)
     : m_rows (rows), m_columns (columns), m_data (m_rows * m_columns, value) {}
@@ -46,6 +47,30 @@ void matrix::swap (matrix & rhs) {
     swap (m_data, rhs.m_data);
 }
 
+// copy constructor
+// if the lhs matrix is a slice, copy to the original matrix
+matrix& matrix::operator= (const matrix& rhs) {
+    // check that dimensions agree
+    if (m_rows != rhs.m_rows || m_columns != rhs.m_columns)
+        throw std::invalid_argument ("dimensions mismatch");
+    // lhs holds data
+    if (m_pointers.empty()) {
+        // copy the data
+        for (size_type i = 0; i < m_rows; ++i)
+            for (size_type j = 0; j < m_columns; ++j)
+                operator () (i, j) = rhs(i, j);
+    }
+    // lhs is a slice, substitute the real data underneath
+    if (!m_pointers.empty()){
+        // copy the data
+        for (size_type i = 0; i < m_rows; ++i)
+            for (size_type j = 0; j < m_columns; ++j)
+            *m_pointers[sub2ind (i, j)] = rhs(i, j);
+    }
+
+    return *this;
+}
+
 // elements access
 matrix::reference matrix::operator () (size_type i, size_type j) {
     // if there are no pointers, return real data
@@ -60,6 +85,20 @@ matrix::const_reference matrix::operator () (size_type i, size_type j) const {
     return *m_pointers[sub2ind (i, j)];
 }
 
+// slicing with array indexes
+matrix matrix::operator () (array<size_type, 2> rows_arr, array<size_type, 2> cols_arr) {
+    // check that the arrays make sense
+    if (rows_arr[0] > rows_arr[1] || cols_arr[0] > cols_arr[1])
+        throw std::invalid_argument ("invalid slice");
+    // generate the two full vectors
+    vector<size_type> rows(rows_arr[1]-rows_arr[0]+1);
+    std::iota (rows.begin(), rows.end(), rows_arr[0]);
+    vector<size_type> cols(cols_arr[1]-cols_arr[0]+1);
+    std::iota(cols.begin(),cols.end(), cols_arr[0]);
+
+    // return the vector version
+    return operator () (rows, cols);
+}
 // slicing
 matrix matrix::operator () (vector<size_type> rows, vector<size_type> columns) {
 

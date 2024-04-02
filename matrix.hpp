@@ -3,12 +3,15 @@
 
 #include <istream>
 #include <vector>
+#include <array>
 
 using std::vector;
+using std::array;
 
 class matrix final {
 
     typedef vector<double> container_type;
+    // for when the matrix is only a slice of a bigger matrix
     typedef vector<double*> pointer_container_type;
 
 public:
@@ -32,16 +35,23 @@ public:
     matrix (size_type rows, size_type columns, const_reference value = 0.0);
     explicit matrix (std::istream &);
 
+    // copy constructor
+    matrix& operator= (const matrix&);
+
     void read (std::istream &);
     void swap (matrix &);
 
     // elements access
-    reference operator () (size_type i, size_type j);
-    const_reference operator () (size_type i, size_type j) const;
+    reference operator () (size_type, size_type);
+    const_reference operator () (size_type, size_type) const;
 
-    // slicing
-    matrix operator () (vector<size_type> rows, vector<size_type> columns);
-    const matrix operator () (vector<size_type> rows, vector<size_type> columns) const;
+    // slicing (only two indexes)
+    matrix operator () (array<size_type, 2>, array<size_type, 2>);
+    const matrix operator () (array<size_type, 2>, array<size_type, 2>) const;
+
+    // slicing (multiple indexes)
+    matrix operator () (vector<size_type>, vector<size_type>);
+    const matrix operator () (vector<size_type>, vector<size_type>) const;
 
     size_type rows (void) const;
     size_type columns (void) const;
@@ -51,9 +61,9 @@ public:
     pointer data (void);
     const_pointer data (void) const;
 
-    void print (std::ostream& os) const;
+    void print (std::ostream&) const;
 
-    void to_csv (std::ostream& os) const;
+    void to_csv (std::ostream&) const;
 
 };
 
