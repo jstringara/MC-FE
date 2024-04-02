@@ -40,12 +40,9 @@ class BlackScholes : public Model {
     
 public:
     // constructor
-    BlackScholes(double r, double sigma, double d=0.0) :
-        Model("Black-Scholes", {{"r", r}, {"sigma", sigma}, {"d", d}}) { 
-        // check if the parameters are valid
-        if (sigma < 0.0)
-            throw std::invalid_argument("sigma must be non-negative");
-    }
+    BlackScholes(double r, double sigma, double d=0.0);
+    // constructor from input
+    explicit BlackScholes(std::istream& is);
 
     // simulate the model with Black Scholes dynamics (vectorized)
     vector<double> simulate(const vector<double>& S, double dt) const override;

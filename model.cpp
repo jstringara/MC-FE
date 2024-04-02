@@ -13,6 +13,30 @@ void Model::print(std::ostream& os) const {
     }
 }
 
+BlackScholes::BlackScholes(double r, double sigma, double d)
+    : Model("Black-Scholes", {{"r", r}, {"sigma", sigma}, {"d", d}}) { 
+    // check if the parameters are valid
+    if (sigma < 0.0)
+        throw std::invalid_argument("sigma must be non-negative");
+}
+
+BlackScholes::BlackScholes(std::istream& is) :
+    Model("Black-Scholes", {}){
+
+    // read the input
+    double r, sigma, d;
+    is >> r >> sigma >> d;
+
+    // check the parameters
+    if (sigma < 0.0)
+        throw std::invalid_argument("sigma must be non-negative");
+    // add the parameters
+    m_params["r"] = r;
+    m_params["sigma"] = sigma;
+    m_params["d"] = d;
+
+}
+
 vector<double> BlackScholes::simulate(const vector<double>& S_0, double dt) const {
 
     // retrieve the parameters
