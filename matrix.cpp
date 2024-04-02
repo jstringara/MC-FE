@@ -8,8 +8,15 @@
 using std::vector;
 using std::array;
 
-matrix::matrix (size_type rows, size_type columns, const_reference value)
-    : m_rows (rows), m_columns (columns), m_data (m_rows * m_columns, value) {}
+matrix::matrix (size_type rows, size_type cols, const_reference value)
+    : m_rows (rows), m_columns (cols), m_data (m_rows * m_columns, value) {}
+
+matrix::matrix(size_type rows, size_type cols, container_type values)
+    : m_rows (rows), m_columns (cols), m_data (values) {
+    // check that the dimensions are correct
+    if (m_rows * m_columns != m_data.size())
+        throw std::invalid_argument ("dimensions mismatch");
+}
 
 matrix::matrix (std::istream & in) {
     read (in);
@@ -141,6 +148,19 @@ matrix::size_type matrix::rows (void) const {
 
 matrix::size_type matrix::columns (void) const {
     return m_columns;
+}
+
+matrix::container_type matrix::as_vector (void) const {
+    // if this is a slice return the real data
+    if (!m_pointers.empty()) {
+        container_type result (m_rows * m_columns);
+        for (size_type i = 0; i < m_rows; ++i)
+            for (size_type j = 0; j < m_columns; ++j)
+                result[sub2ind (i, j)] = operator () (i, j);
+        return result;
+    } else {
+        return m_data;
+    }
 }
 
 matrix matrix::transposed (void) const {

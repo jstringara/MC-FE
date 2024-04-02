@@ -32,7 +32,8 @@ private:
 public:
     // constructors
     matrix (void) = default;
-    matrix (size_type rows, size_type columns, const_reference value = 0.0);
+    matrix (size_type rows, size_type cols, const_reference value = 0.0);
+    explicit matrix(size_type rows, size_type cols, container_type values);
     explicit matrix (std::istream &);
 
     // copy constructor
@@ -55,6 +56,9 @@ public:
 
     size_type rows (void) const;
     size_type columns (void) const;
+    
+    // return the data as a vector
+    container_type as_vector (void) const;
 
     matrix transposed (void) const;
 
