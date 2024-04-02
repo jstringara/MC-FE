@@ -1,7 +1,11 @@
 #include <iomanip>
+#include <sstream>
 #include <iostream>
+#include <numeric>
 
 #include "matrix.hpp"
+
+using std::vector;
 
 matrix::matrix (size_type rows, size_type columns, const_reference value)
     : m_rows (rows), m_columns (columns), m_data (m_rows * m_columns, value) {}
@@ -18,13 +22,13 @@ void matrix::read (std::istream & in) {
     std::string line;
     std::getline (in, line);
 
-    std::istringstream first_line (line);
+    std::istringstream first_line(line);
     first_line >> m_rows >> m_columns;
     m_data.resize (m_rows * m_columns);
 
     for (size_type i = 0; i < m_rows; ++i) {
         std::getline (in, line);
-        std::istringstream current_line (line);
+        std::istringstream current_line(line);
 
         for (size_type j = 0; j < m_columns; ++j) {
             /* alternative syntax: current_line >> operator () (i, j);
@@ -42,12 +46,54 @@ void matrix::swap (matrix & rhs) {
     swap (m_data, rhs.m_data);
 }
 
+// elements access
 matrix::reference matrix::operator () (size_type i, size_type j) {
-    return m_data[sub2ind (i, j)];
+    // if there are no pointers, return real data
+    if (m_pointers.empty())
+        return m_data[sub2ind (i, j)];
+    return *m_pointers[sub2ind (i, j)];
 }
 
 matrix::const_reference matrix::operator () (size_type i, size_type j) const {
-    return m_data[sub2ind (i, j)];
+    if (m_pointers.empty())
+        return m_data[sub2ind (i, j)];
+    return *m_pointers[sub2ind (i, j)];
+}
+
+// slicing
+matrix matrix::operator () (vector<size_type> rows, vector<size_type> columns) {
+
+    // if both empty, throw exception
+    if (rows.empty() && columns.empty())
+        throw std::invalid_argument ("empty slice");
+    // if only rows is empty, return all columns
+    if (rows.empty()){
+        // create a vector with m_rows elements
+        rows = vector<size_type> (m_rows);
+        std::iota (rows.begin(), rows.end(), 0);
+    }
+    // if only columns is empty, return all rows
+    if (columns.empty()){
+        // create a vector with m_columns elements
+        columns = vector<size_type> (m_columns);
+        std::iota (columns.begin(), columns.end(), 0);
+    }
+
+    // the new matrix data is a reference to old matrix data
+
+    // create a new matrix with the new dimensions
+    matrix M (rows.size(), columns.size());
+
+    // make the new matrix point to the old data (shallow copy)
+    for (size_type i = 0; i < M.rows (); ++i)
+        for (size_type j = 0; j < M.columns (); ++j)
+            M.m_pointers.push_back(&operator () (rows[i], columns[j]));
+
+    return M;
+}
+
+const matrix matrix::operator () (vector<size_type> rows, vector<size_type> columns) const {
+    return const_cast<matrix*>(this)->operator () (rows, columns);
 }
 
 matrix::size_type matrix::rows (void) const {
@@ -79,8 +125,8 @@ matrix::const_pointer matrix::data (void) const {
 void matrix::print (std::ostream& os) const {
     using size_type = matrix::size_type;
 
-    os << m_rows << " " << m_columns << "\n";
-    
+    os << "(" << m_rows << "x" << m_columns << ")\n";
+
     for (size_type i = 0; i < m_rows; ++i) {
         for (size_type j = 0; j < m_columns; ++j)
             os << operator () (i,j) << " ";

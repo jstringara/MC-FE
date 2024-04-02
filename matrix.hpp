@@ -4,9 +4,12 @@
 #include <istream>
 #include <vector>
 
+using std::vector;
+
 class matrix final {
 
-    typedef std::vector<double> container_type;
+    typedef vector<double> container_type;
+    typedef vector<double*> pointer_container_type;
 
 public:
     typedef container_type::value_type value_type;
@@ -19,6 +22,7 @@ public:
 private:
     size_type m_rows = 0, m_columns = 0;
     container_type m_data;
+    pointer_container_type m_pointers = {}; // starts empty
 
     size_type sub2ind (size_type i, size_type j) const;
 
@@ -31,8 +35,13 @@ public:
     void read (std::istream &);
     void swap (matrix &);
 
+    // elements access
     reference operator () (size_type i, size_type j);
     const_reference operator () (size_type i, size_type j) const;
+
+    // slicing
+    matrix operator () (vector<size_type> rows, vector<size_type> columns);
+    const matrix operator () (vector<size_type> rows, vector<size_type> columns) const;
 
     size_type rows (void) const;
     size_type columns (void) const;
