@@ -1,7 +1,9 @@
 #include "model.hpp"
-#include "payoff.hpp"
+#include "option.hpp"
+#include "matrix.hpp"
+#include "MC.hpp"
 
-using BlackScholes = MC::BlackScholes;
+using BlackScholes = BlackScholes;
 
 // define the normal distribution function
 double N(double x) {
@@ -11,57 +13,33 @@ double N(double x) {
 
 int main(int argc, char* argv[]){
 
-    // create and print the model (B&S, r=5%, sigma=20%)
-    BlackScholes model(0.05, 0.2);
-    model.print(std::cout);
+    // take the number of simulations from the input
+    size_t N_sim = argv[1] ? std::stoi(argv[1]) : 1000;
 
-    // initial value
+    size_t N_steps = 1;
     double S_0 = 100.0;
 
-    // convert the input to a number of simulations
-    int N_sim = argv[1] ? std::stoi(argv[1]) : 1000;
+    // run a MC simulation for BlackScholes call option
+    BlackScholes model = BlackScholes(0.05, 0.2);
+    EU_Call option = EU_Call(100.0);
 
-    // simulate the model
-    vector<double> S_t = model.simulate(S_0, 1.0, N_sim);
+    // compute the discount factors
+    vector<double> DF({exp(-0.05 * 1.0)});
 
-    // use the payoffs
-    EU_Call call(100.0);
-    EU_Put put(100.0);
-    ClOption cl(100.0);
+    // create the MC object
+    MC mc = MC(&model, &option);
 
-    double mean_call = 0.0;
-    double mean_put = 0.0;
+    // run the simulation
+    map<string, double> results = mc.simulate(N_sim, N_steps, S_0, 1.0, DF);
 
-    for (auto& S : S_t) {
-        mean_call += call(S);
-        mean_put += put(S);
-    }
+    std::cout << "Mean: " << results["mean"] << std::endl;
+    std::cout << "[" << results["lb"] << ", " << results["ub"] << "]" << std::endl;
 
-    mean_call /= N_sim;
-    mean_put /= N_sim;
-
-    // display the mean payoff
-    mean_call = mean_call * exp(-0.05);
-    mean_put = mean_put * exp(-0.05);
-
-    // compute the closed form solution
-    double d1 = (log(S_0 / 100.0) + (0.05 + 0.2 * 0.2 / 2.0)) / (0.2 * sqrt(1.0));
+    // compare with the Black-Scholes formula
+    double d1 = (log(S_0 / 100.0) + (0.05 + 0.2 * 0.2 / 2) * 1.0) / (0.2 * sqrt(1.0));
     double d2 = d1 - 0.2 * sqrt(1.0);
-
-    double call_price = S_0 * N(d1) - 100.0 * exp(-0.05) * N(d2);
-    double put_price = 100.0 * exp(-0.05) * N(-d2) - S_0 * N(-d1);
-
-    std::cout << "mean call payoff = " << mean_call << std::endl;
-    std::cout << "mean put payoff = " << mean_put << std::endl;
-    std::cout << "call price = " << call_price << std::endl;
-    std::cout << "put price = " << put_price << std::endl;
-
-    // check the put-call parity
-    // C - P = S - K * exp(-r * T)
-    double diff = mean_call - mean_put;
-    double diff2 = S_0 - 100.0 * exp(-0.05);
-    std::cout << "C - P = " << diff << std::endl;
-    std::cout << "S - K * exp(-r * T) = " << diff2 << std::endl;
+    double BS_call = S_0 * N(d1) - 100.0 * exp(-0.05 * 1.0) * N(d2);
+    std::cout << "BS formula: " << BS_call << std::endl;
 
     return 0;
 }
