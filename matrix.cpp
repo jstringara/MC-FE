@@ -1,29 +1,22 @@
-#include <iomanip>
 #include <sstream>
 #include <iostream>
-#include <numeric>
 
 #include "matrix.hpp"
 
 using std::vector;
-using std::array;
 
 matrix::matrix (size_type rows, size_type cols, const_reference value)
-    : m_rows (rows), m_columns (cols), m_data (m_rows * m_columns, value) {}
-
+    : m_rows (rows), m_columns (cols), m_data (cols, vector<double>(rows,value)) {}
+ 
 matrix::matrix(size_type rows, size_type cols, container_type values)
     : m_rows (rows), m_columns (cols), m_data (values) {
     // check that the dimensions are correct
-    if (m_rows * m_columns != m_data.size())
+    if (m_rows * m_columns != m_data.size() * m_data[0].size())
         throw std::invalid_argument ("dimensions mismatch");
 }
 
 matrix::matrix (std::istream & in) {
     read (in);
-}
-
-matrix::size_type matrix::sub2ind (size_type i, size_type j) const {
-    return i * m_columns + j;
 }
 
 void matrix::read (std::istream & in) {
@@ -32,7 +25,8 @@ void matrix::read (std::istream & in) {
 
     std::istringstream first_line(line);
     first_line >> m_rows >> m_columns;
-    m_data.resize (m_rows * m_columns);
+    // resize the data vector
+    m_data.resize(m_columns, vector<double>(m_rows));
 
     for (size_type i = 0; i < m_rows; ++i) {
         std::getline (in, line);
@@ -47,99 +41,13 @@ void matrix::read (std::istream & in) {
     }
 }
 
-void matrix::swap (matrix & rhs) {
-    using std::swap;
-    swap (m_rows, rhs.m_rows);
-    swap (m_columns, rhs.m_columns);
-    swap (m_data, rhs.m_data);
-}
-
-// copy constructor
-// if the lhs matrix is a slice, copy to the original matrix
-matrix& matrix::operator= (const matrix& rhs) {
-    // check that dimensions agree
-    if (m_rows != rhs.m_rows || m_columns != rhs.m_columns)
-        throw std::invalid_argument ("dimensions mismatch");
-    // lhs holds data
-    if (m_pointers.empty()) {
-        // copy the data
-        for (size_type i = 0; i < m_rows; ++i)
-            for (size_type j = 0; j < m_columns; ++j)
-                operator () (i, j) = rhs(i, j);
-    }
-    // lhs is a slice, substitute the real data underneath
-    if (!m_pointers.empty()){
-        // copy the data
-        for (size_type i = 0; i < m_rows; ++i)
-            for (size_type j = 0; j < m_columns; ++j)
-            *m_pointers[sub2ind (i, j)] = rhs(i, j);
-    }
-
-    return *this;
-}
-
 // elements access
 matrix::reference matrix::operator () (size_type i, size_type j) {
-    // if there are no pointers, return real data
-    if (m_pointers.empty())
-        return m_data[sub2ind (i, j)];
-    return *m_pointers[sub2ind (i, j)];
+    return m_data[j][i];
 }
 
 matrix::const_reference matrix::operator () (size_type i, size_type j) const {
-    if (m_pointers.empty())
-        return m_data[sub2ind (i, j)];
-    return *m_pointers[sub2ind (i, j)];
-}
-
-// slicing with array indexes
-matrix matrix::operator () (array<size_type, 2> rows_arr, array<size_type, 2> cols_arr) {
-    // check that the arrays make sense
-    if (rows_arr[0] > rows_arr[1] || cols_arr[0] > cols_arr[1])
-        throw std::invalid_argument ("invalid slice");
-    // generate the two full vectors
-    vector<size_type> rows(rows_arr[1]-rows_arr[0]+1);
-    std::iota (rows.begin(), rows.end(), rows_arr[0]);
-    vector<size_type> cols(cols_arr[1]-cols_arr[0]+1);
-    std::iota(cols.begin(),cols.end(), cols_arr[0]);
-
-    // return the vector version
-    return operator () (rows, cols);
-}
-// slicing
-matrix matrix::operator () (vector<size_type> rows, vector<size_type> columns) {
-
-    // if both empty, throw exception
-    if (rows.empty() && columns.empty())
-        throw std::invalid_argument ("empty slice");
-    // if only rows is empty, return all columns
-    if (rows.empty()){
-        // create a vector with m_rows elements
-        rows = vector<size_type> (m_rows);
-        std::iota (rows.begin(), rows.end(), 0);
-    }
-    // if only columns is empty, return all rows
-    if (columns.empty()){
-        // create a vector with m_columns elements
-        columns = vector<size_type> (m_columns);
-        std::iota (columns.begin(), columns.end(), 0);
-    }
-
-    // the new matrix data is a reference to old matrix data
-
-    // create a new matrix with the new dimensions
-    matrix M (rows.size(), columns.size());
-
-    // make the new matrix point to the old data (shallow copy)
-    for (size_type i = 0; i < M.rows (); ++i)
-        for (size_type j = 0; j < M.columns (); ++j)
-            M.m_pointers.push_back(&operator () (rows[i], columns[j]));
-
-    return M;
-}
-
-const matrix matrix::operator () (vector<size_type> rows, vector<size_type> columns) const {
-    return const_cast<matrix*>(this)->operator () (rows, columns);
+    return m_data[j][i];
 }
 
 matrix::size_type matrix::rows (void) const {
@@ -150,35 +58,59 @@ matrix::size_type matrix::columns (void) const {
     return m_columns;
 }
 
-matrix::container_type matrix::as_vector (void) const {
-    // if this is a slice return the real data
-    if (!m_pointers.empty()) {
-        container_type result (m_rows * m_columns);
-        for (size_type i = 0; i < m_rows; ++i)
-            for (size_type j = 0; j < m_columns; ++j)
-                result[sub2ind (i, j)] = operator () (i, j);
-        return result;
-    } else {
-        return m_data;
-    }
+matrix::column_type matrix::col(size_type j) const {
+    // check that the column index is valid
+    if (j >= m_columns)
+        throw std::out_of_range ("column index out of range");
+    return m_data[j];
+}
+
+void matrix::insert_col(size_type j, column_type const & col) {
+    // check that the column index is valid
+    if (j >= m_columns)
+        throw std::out_of_range ("column index out of range");
+    // check that the column size is correct
+    if (col.size() != m_rows)
+        throw std::invalid_argument ("column size mismatch");
+    m_data[j] = col;
+}
+
+matrix::column_type matrix::row(size_type i) const {
+    column_type row(m_columns);
+    for (size_type j = 0; j < m_columns; ++j)
+        row[j] = operator () (i, j);
+    return row;
+}
+
+void matrix::insert_row(size_type i, column_type const & row) {
+    // check that the row index is valid
+    if (i >= m_rows)
+        throw std::out_of_range ("row index out of range");
+    // check that the row size is correct
+    if (row.size() != m_columns)
+        throw std::invalid_argument ("row size mismatch");
+    for (size_type j = 0; j < m_columns; ++j)
+        operator () (i, j) = row[j];
 }
 
 matrix matrix::transposed (void) const {
+
+    // create the transposed matrix
     matrix At (m_columns, m_rows);
 
-    for (size_type i = 0; i < m_columns; ++i)
-        for (size_type j = 0; j < m_rows; ++j)
-            At(i, j) = operator () (j, i);
+    for (size_type i = 0; i < m_rows; ++i)
+        for (size_type j = 0; j < m_columns; ++j)
+            At(j, i) = operator () (i, j);
 
     return At;
 }
 
 matrix::pointer matrix::data (void) {
-    return m_data.data ();
+    return m_data.data();
 }
 
 matrix::const_pointer matrix::data (void) const {
-    return m_data.data ();
+    return m_data.data();
 }
 
 void matrix::print (std::ostream& os) const {
@@ -197,7 +129,7 @@ void matrix::to_csv (std::ostream& os) const {
     for (size_type i = 0; i < m_rows; ++i) {
         for (size_type j = 0; j < m_columns; ++j) {
             char del = (j < m_columns - 1) ? ',' : '\n';
-            os << std::setprecision(5) << operator () (i,j) << del;
+            os << operator () (i,j) << del;
         }
     }
 }
@@ -215,6 +147,3 @@ matrix operator * (matrix const & A, matrix const & B) {
     return C;
 }
 
-void swap (matrix & A, matrix & B) {
-    A.swap (B);
-}

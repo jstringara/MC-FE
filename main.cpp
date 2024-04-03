@@ -3,6 +3,9 @@
 #include "matrix.hpp"
 #include "MC.hpp"
 
+#include <iostream>
+#include <chrono>
+
 using BlackScholes = BlackScholes;
 
 // define the normal distribution function
@@ -12,6 +15,9 @@ double N(double x) {
 
 
 int main(int argc, char* argv[]){
+
+    // start elapsed time
+    auto start = std::chrono::high_resolution_clock::now();
 
     // take the number of simulations from the input
     size_t N_sim = argv[1] ? std::stoi(argv[1]) : 1000;
@@ -30,7 +36,7 @@ int main(int argc, char* argv[]){
     MC mc = MC(&model, &option);
 
     // run the simulation
-    map<string, double> results = mc.simulate(N_sim, N_steps, S_0, 1.0, DF);
+    map<string, double> results = mc.price(DF, S_0, 1.0, N_sim, N_steps);
 
     std::cout << "Mean: " << results["mean"] << std::endl;
     std::cout << "[" << results["lb"] << ", " << results["ub"] << "]" << std::endl;
@@ -40,6 +46,18 @@ int main(int argc, char* argv[]){
     double d2 = d1 - 0.2 * sqrt(1.0);
     double BS_call = S_0 * N(d1) - 100.0 * exp(-0.05 * 1.0) * N(d2);
     std::cout << "BS formula: " << BS_call << std::endl;
+
+    std::cout << "Error: " << std::abs(BS_call - results["mean"]) << std::endl;
+
+    std::cout << "Variance: " << results["var"] / N_sim << std::endl;
+
+    // end elapsed time
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // compute the elapsed time
+    std::chrono::duration<double> elapsed = end - start;
+
+    std::cout << "Elapsed time: " << elapsed.count() << " s" << std::endl;
 
     return 0;
 }
