@@ -14,7 +14,7 @@ private:
     // option to price
     Option* m_option;
     // result of the simulation
-    matrix m_result;
+    Matrix<double> m_result;
 
     // compute the IC and mean (helper function)
     map<string, double> compute_IC_and_mean(vector<double> DF) const;
@@ -25,7 +25,7 @@ public:
     MC(Model* model, Option* option) : m_model(model), m_option(option) {};
 
     // return the result of the simulation
-    matrix simulate(size_t N_sim, size_t N_steps, double S_0, double T);
+    Matrix<double> simulate(size_t N_sim, size_t N_steps, double S_0, double T);
 
     // compute the price and IC at 95%
     map<string, double> price(vector<double> DF, double S_0, double T, size_t N_sim, 

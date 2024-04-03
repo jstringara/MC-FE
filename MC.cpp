@@ -1,7 +1,7 @@
 #include "MC.hpp"
 
 // simulation
-matrix MC::simulate(size_t N_sim, size_t N_steps, double S_0, double T) {
+Matrix<double> MC::simulate(size_t N_sim, size_t N_steps, double S_0, double T) {
 
     // compute the time step
     double dt = T/N_steps;
@@ -9,7 +9,7 @@ matrix MC::simulate(size_t N_sim, size_t N_steps, double S_0, double T) {
     const Model &model = *m_model;
 
     // create the matrix to hold the paths (N_sim x N_steps+1)
-    matrix S(N_sim, N_steps+1);
+    Matrix<double> S(N_sim, N_steps+1);
 
     // set the first column to S_0
     S.insert_col(0, vector<double>(N_sim, S_0));
@@ -34,12 +34,12 @@ map<string, double> MC::compute_IC_and_mean(vector<double> DF) const {
     }
 
     // save the number of simulations and steps
-    matrix::size_type N_sim = m_result.rows();
-    matrix::size_type N_steps = m_result.columns() - 1;
+    Matrix<double>::size_type N_sim = m_result.rows();
+    Matrix<double>::size_type N_steps = m_result.columns() - 1;
 
     // compute the payoff for each path
     vector<double> payoffs;
-    for (matrix::size_type i = 0; i<N_sim; ++i){
+    for (Matrix<double>::size_type i = 0; i<N_sim; ++i){
         // get the row i
         vector<double> path = m_result.row(i);
         // compute the payoff
