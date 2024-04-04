@@ -1,6 +1,7 @@
 #include "model.hpp"
 #include "option.hpp"
 #include "matrix.hpp"
+#include "vec.hpp"
 #include "MC.hpp"
 
 #include <iostream>
@@ -18,6 +19,11 @@ int main(int argc, char* argv[]){
 
     // start elapsed time
     auto start = std::chrono::high_resolution_clock::now();
+
+    // create a vector
+    Vec<double> v(3, 1.0);
+
+    std::cout << v << std::endl;
 
     // take the number of simulations from the input
     size_t N_sim = argv[1] ? std::stoi(argv[1]) : 1000;

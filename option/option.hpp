@@ -1,5 +1,5 @@
-#ifndef PAYOFF_HPP
-#define PAYOFF_HPP
+#ifndef OPTION_HPP
+#define OPTION_HPP
 
 #include <map>
 #include <string>
@@ -63,4 +63,4 @@ public:
     double payoff(vector<double> S, vector<double> DF) const override;
 };
 
-#endif // !#ifndef PAYOFF_HPP
+#endif // !#ifndef OPTION_HPP

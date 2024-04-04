@@ -12,7 +12,7 @@ using std::map;
 using std::ostream;
 using std::normal_distribution;
 
-    
+   
 // model class used to model the underlying stock dynamics
 class Model {
 

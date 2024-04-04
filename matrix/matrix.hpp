@@ -70,7 +70,7 @@ Matrix<T>::Matrix(size_type rows, size_type cols, container_type values)
     : m_rows (rows), m_columns (cols), m_data (values) {
     // check that the dimensions are correct
     if (m_rows * m_columns != m_data.size() * m_data[0].size())
-        throw std::invalid_argument ("dimensions mismatch");
+        throw std::invalid_argument ("Matrix::Matrix: wrong size");
 }
 
 template <class T>
