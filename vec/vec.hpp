@@ -16,6 +16,7 @@ template <class T> class Vec {
 
 public:
     typedef typename container_type::size_type size_type;
+    typedef typename container_type::value_type value_type;
     typedef typename container_type::reference reference;
     typedef typename container_type::const_reference const_reference;
     typedef typename container_type::pointer pointer;
@@ -30,6 +31,7 @@ public:
     // constructors
     Vec<T> (void) = default;
     Vec<T> (size_type size, const_reference value = T());
+    Vec<T> (container_type values);
     explicit Vec<T> (size_type size, container_type values);
     explicit Vec<T> (std::istream &);
 
@@ -42,27 +44,51 @@ public:
     // size access
     size_type size (void) const;
 
-    // scalar addition
+    // addition
+    Vec<T> operator + (const Vec<T> &) const;
     Vec<T> operator + (const T &) const;
+    Vec<T> operator += (const Vec<T> &);
+    Vec<T> operator += (const T &);
 
-    // scalar subtraction
+    // subtraction
+    Vec<T> operator - (const Vec<T> &) const;
     Vec<T> operator - (const T &) const;
+    Vec<T> operator -= (const Vec<T> &);
+    Vec<T> operator -= (const T &);
 
-    // scalar multiplication
+    friend Vec<T> operator - (const T & s, const Vec<T> & v) {
+        // check that the operator is defined for the type T
+        if (std::is_arithmetic<T>::value == false)
+            throw std::invalid_argument("operator -: operator - not defined for type T");
+        // subtract the vector from the scalar
+        Vec<T> result(v.size());
+        std::transform (v.m_data.cbegin(), v.m_data.cend(), result.m_data.begin(),
+            [&s](const T & x) { return s - x; });
+        return result;
+    };
+
+    // multiplication
     Vec<T> operator * (const T &) const;
+    T operator * (const Vec<T> &) const;
+    T operator *= (const Vec<T> &);
+    Vec<T> operator *= (const T &);
 
     // scalar division
     Vec<T> operator / (const T &) const;
+    Vec<T> operator /= (const T &);
 
-    // vector addition
-    Vec<T> operator + (const Vec<T> &) const;
+    // element wise max
+    Vec<T> operator ^ (const Vec<T> &) const;
+    Vec<T> operator ^ (const T & s) const;
 
-    // vector subtraction
-    Vec<T> operator - (const Vec<T> &) const;
+    // element wise min
+    Vec<T> operator | (const Vec<T> &) const;
+    Vec<T> operator | (const T & s) const;
 
-
-    // dot product
-    T operator * (const Vec<T> &) const;
+    // mean
+    T mean (void) const; 
+    // variance
+    T var (void) const;
 
 };
 
@@ -78,6 +104,10 @@ Vec<T>::Vec (size_type size, container_type values)
     if (m_data.size() != m_size)
         throw std::invalid_argument("Vec::Vec: wrong size");
 }
+
+template <class T>
+Vec<T>::Vec (container_type values)
+    : m_size (values.size()), m_data (values) {}
 
 template <class T>
 Vec<T>::Vec (std::istream & is) {
@@ -111,7 +141,8 @@ typename Vec<T>::size_type Vec<T>::size (void) const {
 
 // operators
 
-// scalar addition
+// addition
+
 template <class T>
 Vec<T> Vec<T>::operator + (const T & s) const {
     // check that the operator is defined for the type T
@@ -124,46 +155,6 @@ Vec<T> Vec<T>::operator + (const T & s) const {
     return result;
 }
 
-// sclar subtraction
-template <class T>
-Vec<T> Vec<T>::operator - (const T & s) const {
-    // check that the operator is defined for the type T
-    if (std::is_arithmetic<T>::value == false)
-        throw std::invalid_argument("Vec::operator -: operator - not defined for type T");
-    // subtract the scalar from the vector
-    Vec<T> result(m_size);
-    std::transform (m_data.cbegin(), m_data.cend(), result.m_data.begin(),
-        [&s](const T & x) { return x - s; });
-    return result;
-}
-
-// scalar multiplication
-template <class T>
-Vec<T> Vec<T>::operator * (const T & s) const {
-    // check that the operator is defined for the type T
-    if (std::is_arithmetic<T>::value == false)
-        throw std::invalid_argument("Vec::operator *: operator * not defined for type T");
-    // multiply the vector by the scalar
-    Vec<T> result(m_size);
-    std::transform (m_data.cbegin(), m_data.cend(), result.m_data.begin(),
-        [&s](const T & x) { return x * s; });
-    return result;
-}
-
-// scalar division
-template <class T>
-Vec<T> Vec<T>::operator / (const T & s) const {
-    // check that the operator is defined for the type T
-    if (std::is_arithmetic<T>::value == false)
-        throw std::invalid_argument("Vec::operator /: operator / not defined for type T");
-    // divide the vector by the scalar (we rely on the type to catc division by zero)
-    Vec<T> result(m_size);
-    std::transform (m_data.cbegin(), m_data.cend(), result.m_data.begin(),
-        [&s](const T & x) { return x / s; });
-    return result;
-}
-
-// vector addition
 template <class T>
 Vec<T> Vec<T>::operator + (const Vec<T> & v) const {
     // check that the operator is defined for the type T
@@ -179,7 +170,50 @@ Vec<T> Vec<T>::operator + (const Vec<T> & v) const {
     return result;
 }
 
-// vector subtraction
+// reverse addition
+template <class T>
+inline Vec<T> operator + (const T & s, const Vec<T> & v) {
+    return v + s;
+}
+
+template <class T>
+Vec<T> Vec<T>::operator += (const Vec<T> & v) {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator +=: operator + not defined for type T");
+    // check that the size match up
+    if (m_size != v.m_size)
+        throw std::invalid_argument("Vec::operator +=: wrong size");
+    // add the two vectors together element-wise
+    std::transform (m_data.cbegin(), m_data.cend(), v.m_data.cbegin(), m_data.begin(),
+        std::plus<T>());
+    return *this;
+}
+
+template <class T>
+Vec<T> Vec<T>::operator += (const T & s) {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator +=: operator + not defined for type T");
+    // add the scalar to the vector
+    std::transform (m_data.cbegin(), m_data.cend(), m_data.begin(),
+        [&s](const T & x) { return x + s; });
+    return *this;
+}
+
+// subtraction
+template <class T>
+Vec<T> Vec<T>::operator - (const T & s) const {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator -: operator - not defined for type T");
+    // subtract the scalar from the vector
+    Vec<T> result(m_size);
+    std::transform (m_data.cbegin(), m_data.cend(), result.m_data.begin(),
+        [&s](const T & x) { return x - s; });
+    return result;
+}
+
 template <class T>
 Vec<T> Vec<T>::operator - (const Vec<T> & v) const {
     // check that the operator is defined for the type T
@@ -195,7 +229,46 @@ Vec<T> Vec<T>::operator - (const Vec<T> & v) const {
     return result;
 }
 
-// dot product
+
+template <class T>
+Vec<T> Vec<T>::operator -= (const Vec<T> & v) {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator -=: operator - not defined for type T");
+    // check that the size match up
+    if (m_size != v.m_size)
+        throw std::invalid_argument("Vec::operator -=: wrong size");
+    // subtract the two vectors element-wise
+    std::transform (m_data.cbegin(), m_data.cend(), v.m_data.cbegin(), m_data.begin(),
+        std::minus<T>());
+    return *this;
+}
+
+template <class T>
+Vec<T> Vec<T>::operator -= (const T & s) {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator -=: operator - not defined for type T");
+    // subtract the scalar from the vector
+    std::transform (m_data.cbegin(), m_data.cend(), m_data.begin(),
+        [&s](const T & x) { return x - s; });
+    return *this;
+}
+
+// multiplication
+
+template <class T>
+Vec<T> Vec<T>::operator * (const T & s) const {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator *: operator * not defined for type T");
+    // multiply the vector by the scalar
+    Vec<T> result(m_size);
+    std::transform (m_data.cbegin(), m_data.cend(), result.m_data.begin(),
+        [&s](const T & x) { return x * s; });
+    return result;
+}
+
 template <class T>
 T Vec<T>::operator * (const Vec<T> & v) const {
     // check that the product and sum are defined for the type T
@@ -213,11 +286,151 @@ T Vec<T>::operator * (const Vec<T> & v) const {
     return res;
 }
 
+template <class T>
+inline Vec<T> operator * (const T & s, const Vec<T> & v) {
+    return v * s;
+}
+
+template <class T>
+Vec<T> Vec<T>::operator *= (const T & s) {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator *=: operator * not defined for type T");
+    // multiply the vector by the scalar
+    std::transform (m_data.cbegin(), m_data.cend(), m_data.begin(),
+        [&s](const T & x) { return x * s; });
+    return *this;
+}
+
+template <class T>
+T Vec<T>::operator *= (const Vec<T> & v) {
+    // check that the product and sum are defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator *=: operator * or operator + not defined for type T");
+    // check that the size match up
+    if (m_size != v.m_size)
+        throw std::invalid_argument("Vec::operator *=: wrong sizes");
+    // compute the dot product
+    Vec<T> product(m_size);
+    std::transform(m_data.cbegin(), m_data.cend(), v.m_data.cbegin(), product.m_data.begin(),
+        std::multiplies<T>());
+    T res = std::accumulate(product.m_data.cbegin(), product.m_data.cend(), T(), std::plus<T>());
+    m_data[0] = res;
+    return *this;
+}
+
+// scalar division
+template <class T>
+Vec<T> Vec<T>::operator / (const T & s) const {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator /: operator / not defined for type T");
+    // divide the vector by the scalar (we rely on the type to catc division by zero)
+    Vec<T> result(m_size);
+    std::transform (m_data.cbegin(), m_data.cend(), result.m_data.begin(),
+        [&s](const T & x) { return x / s; });
+    return result;
+}
+
+template <class T>
+Vec<T> Vec<T>::operator /= (const T & s) {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator /=: operator / not defined for type T");
+    // divide the vector by the scalar (we rely on the type to catc division by zero)
+    std::transform (m_data.cbegin(), m_data.cend(), m_data.begin(),
+        [&s](const T & x) { return x / s; });
+    return *this;
+}
+
+// element wise max
+template<class T>
+Vec<T> Vec<T>::operator ^ (const Vec<T> & v) const {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator ^: operator ^ not defined for type T");
+    // check that the size match up
+    if (m_size != v.m_size)
+        throw std::invalid_argument("Vec::operator ^: wrong size");
+    // compute the element wise max
+    Vec<T> result(m_size);
+    std::transform(m_data.cbegin(), m_data.cend(), v.m_data.cbegin(), result.m_data.begin(),
+        [](const T & x, const T & y) { return std::max(x, y); });
+    return result;
+}
+
+template<class T>
+Vec<T> Vec<T>::operator ^ (const T & s) const {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator ^: operator ^ not defined for type T");
+    // compute the element wise max
+    Vec<T> result(m_size);
+    std::transform(m_data.cbegin(), m_data.cend(), result.m_data.begin(),
+        [&s](const T & x) { return std::max(x, s); });
+    return result;
+}
+
+template<class T>
+inline Vec<T> operator ^ (const T & s, const Vec<T> & v) {
+    return v ^ s;
+}
+
+// element wise min
+template <class T>
+Vec<T> Vec<T>::operator | (const Vec<T> & v) const {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator |: operator | not defined for type T");
+    // check that the size match up
+    if (m_size != v.m_size)
+        throw std::invalid_argument("Vec::operator |: wrong size");
+    // compute the element wise min
+    Vec<T> result(m_size);
+    std::transform(m_data.cbegin(), m_data.cend(), v.m_data.cbegin(), result.m_data.begin(),
+        [](const T & x, const T & y) { return std::min(x, y); });
+    return result;
+}
+
+template <class T>
+Vec<T> Vec<T>::operator | (const T & s) const {
+    // check that the operator is defined for the type T
+    if (std::is_arithmetic<T>::value == false)
+        throw std::invalid_argument("Vec::operator |: operator | not defined for type T");
+    // compute the element wise min
+    Vec<T> result(m_size);
+    std::transform(m_data.cbegin(), m_data.cend(), result.m_data.begin(),
+        [&s](const T & x) { return std::min(x, s); });
+    return result;
+}
+
+template <class T>
+inline Vec<T> operator | (const T & s, const Vec<T> & v) {
+    return v | s;
+}
+
+// mean
+template <class T>
+T Vec<T>::mean (void) const {
+    return std::accumulate(m_data.cbegin(), m_data.cend(), T()) / m_size;
+}
+
+// variance
+template <class T>
+T Vec<T>::var (void) const {
+    T m = mean();
+    return std::accumulate(m_data.cbegin(), m_data.cend(), T(), 
+        [m](T accumulator, T value) {
+            return accumulator + (value - m) * (value - m);
+        }) / (m_size - 1);
+}
+
 // stream output 
 template <class T>
 std::ostream & operator << (std::ostream & os, const Vec<T> & v) {
+    // all vectors are printed as column vectors
     for (typename Vec<T>::size_type i = 0; i < v.size(); ++i)
-        os << v[i] << " ";
+        os << v[i] << std::endl;
     return os;
 }
 
