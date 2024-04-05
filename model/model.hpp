@@ -12,6 +12,7 @@ using std::map;
 using std::ostream;
 using std::normal_distribution;
 
+#include "vec.hpp"
    
 // model class used to model the underlying stock dynamics
 class Model {
@@ -26,12 +27,16 @@ protected:
 
 public:
     // constructor
-    Model(string name, map<string, double> params) :
-        m_name(name), m_params(params) {}
-    // print the model
-    void print(ostream& os) const;
+    Model(string name, map<string, double> params) : m_name(name), m_params(params) {};
     // pure virtual function to simulate
-    virtual vector<double> simulate(const vector<double>& S, double dt) const = 0;
+    virtual Vec<double> simulate(const Vec<double>& S, double dt) const = 0;
+
+    // getters
+    string name() const;
+
+    vector<string> params() const;
+
+    double operator [] (string key) const;
 
 };
 
@@ -41,11 +46,9 @@ class BlackScholes : public Model {
 public:
     // constructor
     BlackScholes(double r, double sigma, double d=0.0);
-    // constructor from input
-    explicit BlackScholes(std::istream& is);
 
     // simulate the model with Black Scholes dynamics (vectorized)
-    vector<double> simulate(const vector<double>& S, double dt) const override;
+    Vec<double> simulate(const Vec<double>& S, double dt) const override;
 
 private:
     // generate a random number from a normal distribution

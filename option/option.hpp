@@ -6,6 +6,9 @@
 #include <vector>
 #include <stdexcept>
 
+#include "vec.hpp"
+#include "matrix.hpp"
+
 using std::map;
 using std::string;
 using std::vector;
@@ -20,7 +23,7 @@ protected:
 public:
     Option(map<string, double> params) : m_params(params) {}
     // pure virtual function to compute the payoff of an option
-    virtual double payoff(vector<double> S, vector<double> DF) const = 0; // vector
+    virtual Vec<double> payoff(Matrix<double> S, Vec<double> DF) const = 0; // vector
 };
 
 class EU_Call : public Option {
@@ -33,7 +36,7 @@ public:
             throw std::invalid_argument("K must be non-negative");
     }
     // compute the payoff of a European call option (only single value)
-    double payoff(vector<double> S, vector<double> DF) const override;
+    Vec<double> payoff(Matrix<double> S, Vec<double> DF) const override;
 };
 
 class EU_Put : public Option {
@@ -46,7 +49,7 @@ public:
             throw std::invalid_argument("K must be non-negative");
     }
     // compute the payoff of a European put option (only single value)
-    double payoff(vector<double> S, vector<double> DF) const override;
+    Vec<double> payoff(Matrix<double> S, Vec<double> DF) const override;
 };
 
 // cliquet option payoff
@@ -60,7 +63,7 @@ public:
             throw std::invalid_argument("L must be non-negative");
     }
     // compute the payoff of a cliquet option (only vector of values)
-    double payoff(vector<double> S, vector<double> DF) const override;
+    Vec<double> payoff(Matrix<double> S, Vec<double> DF) const override;
 };
 
 #endif // !#ifndef OPTION_HPP

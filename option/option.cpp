@@ -1,27 +1,31 @@
 #include "option.hpp"
 
-double EU_Call::payoff(vector<double> S, vector<double> DF) const {
+Vec<double> EU_Call::payoff(Matrix<double> S, Vec<double> DF) const {
     double K = m_params.at("K");
-    // get only the last value
-    double S_T = S.back();
-    double DF_T = DF.back();
-    return DF_T * std::max(S_T - K, 0.0);
+    // get only the last column of S
+    Vec<double> S_T = S[S.columns()-1];
+    double DF_T = DF[DF.size()-1];
+    // apply the payoff
+    S_T = DF_T * (S_T - K);
+    // find the maximum between S_T and 0
+    return S_T ^ 0.0;
 }
 
-double EU_Put::payoff(vector<double> S, vector<double> DF) const {
+Vec<double> EU_Put::payoff(Matrix<double> S, Vec<double> DF) const {
     double K = m_params.at("K");
-    double S_T = S.back();
-    double DF_T = DF.back();
-    return DF_T * std::max(K - S_T, 0.0);
+    Vec<double> S_T = S[S.columns()-1];
+    double DF_T = DF[DF.size()-1];
+    S_T = DF_T * (K - S_T);
+    return S_T ^ 0.0;
 }
 
-double ClOption::payoff(vector<double> S, vector<double> DF) const {
+Vec<double> ClOption::payoff(Matrix<double> S, Vec<double> DF) const {
 
     double L = m_params.at("L");
-    double payoff = 0.0;
+    Vec<double> payoff(S.columns(), 0.0);
 
-    for (size_t i = 1; i < S.size(); i++) {
-        payoff += DF[i] * std::max(L*(S[i] - S[i-1]), 0.0);
+    for (size_t i = 1; i < S.columns(); i++) {
+        payoff += DF[i] * (L*(S[i] - S[i-1]) ^ 0.0);
     }
 
     return payoff;

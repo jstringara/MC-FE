@@ -6,11 +6,29 @@ using std::vector;
 // (seed = 42, the answer to the ultimate question of life, the universe, and everything)
 std::mt19937 Model::m_rng(42);
 
-void Model::print(std::ostream& os) const {
-    os << "Model: " << m_name << std::endl;
-    for (auto const& x : m_params) {
-        os << x.first << ": " << x.second << std::endl;
+// getters
+string Model::name() const {
+    return m_name;
+}
+
+vector<string> Model::params() const {
+
+    vector<string> keys;
+    for (const auto& kv : m_params) {
+        keys.push_back(kv.first);
     }
+    return keys;
+}
+
+double Model::operator [] (string key) const {
+    return m_params.at(key);
+}
+
+std::ostream& operator << (std::ostream& os, const Model& model) {
+    os << model.name() << " ";
+    for (const auto& param : model.params())
+        os << param << ": " << model[param] << std::endl;
+    return os;
 }
 
 BlackScholes::BlackScholes(double r, double sigma, double d)
@@ -20,24 +38,7 @@ BlackScholes::BlackScholes(double r, double sigma, double d)
         throw std::invalid_argument("sigma must be non-negative");
 }
 
-BlackScholes::BlackScholes(std::istream& is) :
-    Model("Black-Scholes", {}){
-
-    // read the input
-    double r, sigma, d;
-    is >> r >> sigma >> d;
-
-    // check the parameters
-    if (sigma < 0.0)
-        throw std::invalid_argument("sigma must be non-negative");
-    // add the parameters
-    m_params["r"] = r;
-    m_params["sigma"] = sigma;
-    m_params["d"] = d;
-
-}
-
-vector<double> BlackScholes::simulate(const vector<double>& S_0, double dt) const {
+Vec<double> BlackScholes::simulate(const Vec<double>& S_0, double dt) const {
 
     // retrieve the parameters
     double r = m_params.at("r");
@@ -45,7 +46,7 @@ vector<double> BlackScholes::simulate(const vector<double>& S_0, double dt) cons
     double d = m_params.at("d");
 
     // simulate the model
-    vector<double> S_t(S_0.size());
+    Vec<double> S_t(S_0.size());
     for (size_t i = 0; i < S_0.size(); i++) {
         // generate the normal random variable (rescaled)
         double Z = randn() * sqrt(dt);
