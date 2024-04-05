@@ -17,7 +17,7 @@ private:
     Matrix<double> m_result;
 
     // compute the IC and mean (helper function)
-    map<string, double> compute_IC_and_mean(vector<double> DF) const;
+    map<string, double> compute_IC_and_mean(Vec<double> DF) const;
 
 public:
 
@@ -28,7 +28,7 @@ public:
     Matrix<double> simulate(size_t N_sim, size_t N_steps, double S_0, double T);
 
     // compute the price and IC at 95%
-    map<string, double> price(vector<double> DF, double S_0, double T, size_t N_sim, 
+    map<string, double> price(Vec<double> DF, double S_0, double T, size_t N_sim, 
         size_t N_steps);
 
 };
